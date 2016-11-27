@@ -4,27 +4,30 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <title>Todo App in Backbone.js</title>
+  <style>
+    #completed-list label {
+      text-decoration: line-through;
+    }
+  </style>
 </head>
 <body>
-  <!-- ========= -->
-  <!-- Your HTML -->
-  <!-- ========= -->
   <section id="todoapp">
     <header id="header">
-      <h1>Todos</h1>
-      <input id="new-todo" placeholder="What needs to be done?"></input>
+      <input id="new-todo" placeholder="What needs to be done?" type="text">
       <section id="main">
-        <ul id="todo-list">
-          
-        </ul>
+        <h3>TODO</h3>
+        <ul id="todo-list"></ul>
+        <hr>
+        <h3>COMPLETED</h3>
+        <ul id="completed-list"></ul>
       </section>
     </header>
   </section>
 
+  <!-- TEMPLATES -->
   <script type="text/template" id="item-template">
     <div class="view">
-      <input class="toggle" type="checkbox"></input>
-      <label><%- title %></label>
+      <label><input class="toggle" type="checkbox" <%= completed ? 'checked' : '' %>> <%- title %></label>
     </div>
   </script>
 
@@ -42,11 +45,16 @@
   <script type="text/javascript">
     // your JS code goes here
     var app = {};
+    app.list_todo = $("#todo-list");
+    app.list_complete = $("#completed-list");
 
     app.Todo = Backbone.Model.extend({
       defaults: {
         title: '',
         completed: false
+      },
+      toggle: function(){
+        this.save({ completed: !this.get('completed') });
       }
     });
 
@@ -57,9 +65,19 @@
 
     app.TodoView = Backbone.View.extend({
       tagName: 'li',
-      template: _.template($("#item-template").html()),
+      template: _.template($('#item-template').html()),
+      initialize: function(){
+        this.model.on('change:completed', this.render, this);
+      },
+      events: {
+        'click .toggle': 'toggleCompleted'
+      },
+      toggleCompleted: function(){
+        this.model.toggle();
+      },
       render: function(){
         this.$el.html(this.template(this.model.toJSON()));
+        this.checkbox = this.$(".toggle");
         return this;
       }
     });
@@ -84,10 +102,15 @@
       },
       addOne: function(todo){
         var view = new app.TodoView({model: todo});
-        $("#todo-list").append(view.render().el);
+        if(todo.get("completed")){
+          app.list_complete.append(view.render().el);
+        }else{
+          app.list_todo.append(view.render().el);
+        }
       },
       addAll: function(){
-        this.$("#todo-list").html("");
+        app.list_complete.html("");
+        app.list_todo.html("");
         app.todoList.each(this.addOne, this);
       },
       newAttributes: function(){
